@@ -138,3 +138,14 @@ std::array<std::complex<double>, 2> UHF::hamAndOverlap(Eigen::MatrixXcd& psi, Ha
   hamOverlap[1] = overlap;
   return hamOverlap;
 };
+
+std::array<std::complex<double>, 3> UHF::orbitalEnergy(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham,int orbital)
+{
+ return std::array<std::complex<double>,3> ();
+};
+
+std::array<std::complex<double>,3> UHF::orbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham,int orbital)
+{   
+ return std::array<std::complex<double>,3> ();
+};
+

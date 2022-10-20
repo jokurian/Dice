@@ -8,4 +8,6 @@ void calcMixedEstimatorNoProp(Wavefunction& waveLeft, Wavefunction& waveRight, D
 
 void calcMixedEstimatorLongProp(Wavefunction& waveLeft, Wavefunction& waveRight, Wavefunction& waveGuide, DQMCWalker& walker, Hamiltonian& ham);
 
+void calcMixedEstimatorLNOProp(Wavefunction& waveLeft, Wavefunction& waveRight, Wavefunction& waveGuide, DQMCWalker& walker, Hamiltonian& ham);
+
 #endif

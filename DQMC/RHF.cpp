@@ -129,3 +129,97 @@ std::array<std::complex<double>, 2> RHF::hamAndOverlap(Eigen::MatrixXcd& psi, Ha
   hamOverlap[1] = overlap;
   return hamOverlap;
 };
+
+std::array<std::complex<double>, 3> RHF::orbitalEnergy(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham,int orbital)
+{
+	return std::array<std::complex<double>, 3>();
+};
+
+std::complex<double> RHF::allorbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham)
+{
+  MatrixXcd theta, green;
+  theta = psi * (detT * psi).inverse();
+  green = theta * detT;
+  complex<double> ene(0,0); // = ham.ecore; 
+
+  MatrixXcd fup = MatrixXcd::Zero(rotChol[0].rows(), rotChol[0].rows());
+  complex<double> e21(0,0);
+  complex<double> e22(0,0);
+//  complex<double> exx(0,0);
+//  exx += green.cwiseProduct(ham.h1).sum()*2.0 ; //+ green[1].cwiseProduct(ham.h1).sum(); 
+  for (int i = 0; i<int(ham.nelec/2); i++){
+    ene += (green.col(i).cwiseProduct(ham.h1.col(i)).sum())*2.0;
+  }
+//  cout <<exx<<":"<<ene<<'\n';
+  for (int i = 0; i<ham.ncholEne; i++){
+    fup.noalias() = rotChol[i] * theta;
+    for (int j =0; j<int(ham.nelec/2); j++){
+      e21 += (fup(j,j) * 2.0) * (fup.trace() * 2.);
+      e22 -= (fup.row(j).cwiseProduct(fup.col(j).transpose()).sum()) * 2.;
+    }
+  }
+
+  return (ham.ecore+ene + (e21+e22)*0.5);
+};
+
+
+std::array<std::complex<double>,3> RHF::orbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham,int orbital)
+{
+  complex<double> overlap = (detT * psi).determinant();
+  overlap *= overlap;
+  complex<double> e;
+  if(orbital==-1){
+    e  = allorbitalEnergy(psi,ham);
+    std::array<complex<double>, 3> hamOverlapOrbital; 
+    hamOverlapOrbital[1] = overlap;
+    hamOverlapOrbital[2] = e;
+	
+	MatrixXcd fup = MatrixXcd::Zero(rotChol[0].rows(), rotChol[0].rows());
+    complex<double> enef  = ham.ecore;
+	MatrixXcd theta, green;
+	theta = psi * (detT * psi).inverse();
+    green = theta * detT;
+    
+	enef += 2.0 * green.cwiseProduct(ham.h1).sum();
+	for (int i = 0; i<ham.ncholEne; i++){
+		fup.noalias() = rotChol[i]*theta;
+		complex<double> c = fup.trace();
+		enef += (2. * c * c - fup.cwiseProduct(fup.transpose()).sum());
+	}
+	hamOverlapOrbital[0] = enef*overlap;
+    return hamOverlapOrbital;
+  }
+
+  assert(ham.intType == "r");
+  complex<double> enef  = ham.ecore;
+  complex<double> eneo(0,0);
+  MatrixXcd theta, green;
+  theta = psi * (detT * psi).inverse();
+  green = theta * detT;
+
+
+  enef += 2.0 * green.cwiseProduct(ham.h1).sum();
+//  eneo += 2.0 * (green.transpose().col(orbital).cwiseProduct(ham.h1.col(orbital)).sum());
+  int nocc = ham.nelec/2;
+  int norbs = rotChol[0].cols();
+  
+  // 
+  MatrixXcd fup = MatrixXcd::Zero(rotChol[0].rows(), rotChol[0].rows());
+  MatrixXcd fup1 = MatrixXcd::Zero(nocc,nocc);
+  for (int i = 0; i<ham.ncholEne; i++){
+    fup1.noalias() =  rotChol[i].block(0,nocc,nocc,norbs-nocc) * theta.block(nocc,0,norbs-nocc,nocc); //rotChol[i].block(0,nocc-1,nocc,ham.norbs-nocc) * theta.block(nocc-1,0,ham.norbs-nocc,nocc);
+    fup.noalias() = rotChol[i]*theta;
+    complex<double> c1 = fup1.trace();
+    complex<double> c = fup.trace();
+    eneo += 1.0*(fup1(orbital,orbital)) * (c1 * 2.); //divided by 2
+    eneo -= 1.0*(fup1.row(orbital).cwiseProduct(fup1.col(orbital).transpose()).sum()); //divided by 2
+    enef += (2. * c * c - fup.cwiseProduct(fup.transpose()).sum());
+  }
+  std::array<complex<double>, 3> hamOverlapOrbital;
+ 
+  hamOverlapOrbital[0] = enef * overlap;
+  hamOverlapOrbital[1] = overlap;
+  hamOverlapOrbital[2] = eneo;
+  return hamOverlapOrbital;
+
+};

@@ -1294,3 +1294,12 @@ std::array<std::complex<double>, 2> Multislater::hamAndOverlap(Eigen::MatrixXcd&
   hamOverlap[1] = overlap;
   return hamOverlap;
 };
+
+std::array<std::complex<double>, 3> Multislater::orbitalEnergy(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham,int orbital)
+{
+return std::array<std::complex<double>, 3>();
+};
+std::array<std::complex<double>, 3> Multislater::orbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham,int orbital)
+{   
+ return std::array<std::complex<double>, 3> ();
+};

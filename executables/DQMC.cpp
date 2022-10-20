@@ -196,11 +196,18 @@ int main(int argc, char *argv[])
   }
 
   if (schd.phaseless) {
-    Wavefunction *waveGuide;
-    if (schd.intType != "gz") {
-      waveGuide = new RHF(ham, false);
+    if(schd.orbitalE>-2){
+	Wavefunction *waveGuide;
+        waveGuide = new RHF(ham, false);
+	calcMixedEstimatorLNOProp(*waveLeft, *waveRight, *waveGuide, walker, ham);
     }
-    calcMixedEstimatorLongProp(*waveLeft, *waveRight, *waveGuide, walker, ham);
+    else{
+    	Wavefunction *waveGuide;
+    	if (schd.intType != "gz") {
+      	waveGuide = new RHF(ham, false);
+    	}
+    	calcMixedEstimatorLongProp(*waveLeft, *waveRight, *waveGuide, walker, ham);
+    }
   }
   else {
     if (schd.dt == 0.) calcMixedEstimatorNoProp(*waveLeft, *waveRight, walker, ham);

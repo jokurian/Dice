@@ -17,5 +17,7 @@ class Wavefunction {
     virtual void oneRDM(Eigen::MatrixXcd& det, Eigen::MatrixXcd& rdmSample) { };
     virtual std::array<std::complex<double>, 2> hamAndOverlap(std::array<Eigen::MatrixXcd, 2>& det, Hamiltonian& ham) = 0;
     virtual std::array<std::complex<double>, 2> hamAndOverlap(Eigen::MatrixXcd& det, Hamiltonian& ham) = 0;
+    virtual std::array<std::complex<double>, 3> orbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham,int orbital) = 0;
+    virtual std::array<std::complex<double>, 3> orbitalEnergy(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham,int orbital) = 0;
 };
 #endif

@@ -400,6 +400,7 @@ public:
   std::string intType;
   std::string scratchDir;
   double weightCap;
+  int orbitalE;
 };
 
 /**

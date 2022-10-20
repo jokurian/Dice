@@ -142,3 +142,12 @@ std::array<std::complex<double>, 2> GHF::hamAndOverlap(Eigen::MatrixXcd& psi, Ha
   hamOverlap[1] = overlap;
   return hamOverlap;
 };
+
+std::array<std::complex<double>, 3> GHF::orbitalEnergy(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham,int orbital)
+{
+	return std::array<std::complex<double>, 3>();
+};
+std::array<std::complex<double>, 3> GHF::orbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham,int orbital)
+{   
+ return std::array<std::complex<double>, 3> ();
+};

@@ -186,6 +186,7 @@ void readInput(string inputFile, schedule& schd, bool print) {
     schd.ndets = input.get("wavefunction.ndets", 1e6);
     schd.phaseless = input.get("sampling.phaseless", false);
     schd.weightCap = input.get("sampling.weightCap", -1.);
+    schd.orbitalE = input.get("sampling.orbitalE", -2);
 
     // GFMC
     schd.maxIter = input.get("sampling.maxIter", 50); //note: parameter repeated in optimizer for vmc

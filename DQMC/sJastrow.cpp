@@ -206,3 +206,12 @@ std::array<std::complex<double>, 2> sJastrow::hamAndOverlap(Eigen::MatrixXcd& ps
   psiP[1] = psi;
   return hamAndOverlap(psiP, ham);
 };
+
+std::array<std::complex<double>, 3> sJastrow::orbitalEnergy(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham,int orbital)
+{
+return std::array<std::complex<double>, 3>();
+};
+std::array<std::complex<double>, 3> sJastrow::orbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham,int orbital)
+{   
+ return std::array<std::complex<double>, 3> ();
+};

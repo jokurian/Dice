@@ -19,5 +19,7 @@ class KSGHF : public Wavefunction {
     virtual void forceBias(Eigen::MatrixXcd& psi, Hamiltonian& ham, Eigen::VectorXcd& fb);
     virtual std::array<std::complex<double>, 2> hamAndOverlap(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham);
     virtual std::array<std::complex<double>, 2> hamAndOverlap(Eigen::MatrixXcd& psi, Hamiltonian& ham);
+    virtual std::array<std::complex<double>, 3> orbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham,int orbital);
+    virtual std::array<std::complex<double>, 3> orbitalEnergy(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham,int orbital);
 };
 #endif

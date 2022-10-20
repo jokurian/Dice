@@ -1160,6 +1160,164 @@ def run_afqmc_mc(mc,
 
     return e_afqmc, err_afqmc
 
+# performs phaseless lno-afqmc
+def run_afqmc_lno_mf(mf, vmc_root = None, mpi_prefix = None,norb_act = None,nelec_act=None, mo_coeff = None, norb_frozen = [], nproc = None, chol_cut = 1e-5, seed = None, dt = 0.005, steps_per_block = 50, nwalk_per_proc = 5, nblocks = 1000, ortho_steps = 20, burn_in = 50, cholesky_threshold = 0.5e-3, weight_cap = None, write_one_rdm = False, run_dir = None, scratch_dir = None,orbitalE=-2,eris=None,chol_vecs=None,right=None):
+  print("\nPreparing AFQMC calculation")
+  if vmc_root is None:
+    path = os.path.abspath(__file__)
+    dir_path = os.path.dirname(path)
+    vmc_root = dir_path + '/../'
+    #vmc_root = os.environ['VMC_ROOT']
+
+  owd = os.getcwd()
+  if run_dir is not None:
+    os.system(f"rm -rf {run_dir}; mkdir -p {run_dir};")
+    os.chdir(f'{run_dir}')
+    if scratch_dir is not None:
+      os.system(f"mkdir -p {scratch_dir};")
+
+  mol = mf.mol
+  # choose the orbital basis
+  if mo_coeff is None:
+    if isinstance(mf, scf.uhf.UHF):
+      mo_coeff = mf.mo_coeff[0]
+    elif isinstance(mf, scf.rhf.RHF):
+      mo_coeff = mf.mo_coeff
+    else:
+      raise Exception("Invalid mean field object!")
+  
+
+  # calculate cholesky integrals
+  chol = None
+  print("Calculating Cholesky integrals")
+  if(not isinstance(chol_vecs,type(None))):
+  	h1e, chol, nelec, enuc = generate_integrals(mol, mf.get_hcore(), mo_coeff, chol_cut,chol_vecs=chol_vecs)
+  	nbasis = h1e.shape[-1]  	
+ # 	import pdb;pdb.set_trace()
+  nelec = mol.nelec
+  
+  if(type(norb_frozen)==int):
+    if(norb_frozen == 0):
+    	norb_frozen=[]
+    else:
+    	mc = mcscf.CASSCF(mf, mol.nao-norb_frozen, sum(nelec)-2*norb_frozen) 
+    	mc.frozen = norb_frozen
+    	nelec = mc.nelecas
+    	mc.mo_coeff = mo_coeff
+    	h1e, enuc = mc.get_h1eff()
+    	if(isinstance(chol_vecs,type(None))): h1e, chol, nelec, enuc = generate_integrals(mol, mf.get_hcore(), mo_coeff, chol_cut)
+    	chol = chol.reshape((-1, nbasis, nbasis))
+    	chol = chol[:, mc.ncore:mc.ncore + mc.ncas, mc.ncore:mc.ncore + mc.ncas]
+
+  else:
+    #assert(norb_frozen*2 < sum(nelec))
+    mc = mcscf.CASSCF(mf, norb_act, nelec_act) 
+    mc.frozen = norb_frozen
+    nelec = mc.nelecas
+    mc.mo_coeff = mo_coeff
+    h1e, enuc = mc.get_h1eff()
+    if(not isinstance(chol_vecs,type(None))):
+    	chol = chol.reshape((-1, nbasis, nbasis))
+    	chol = chol[:, mc.ncore:mc.ncore + mc.ncas, mc.ncore:mc.ncore + mc.ncas]
+    else:
+    	nbasis = mo_coeff.shape[-1]
+    	act = [i for i in range(nbasis) if i not in norb_frozen]
+    	e = ao2mo.kernel(mf.mol,mo_coeff[:,act],compact=False)
+    	chol = modified_cholesky(e,max_error = chol_cut)
+
+  print("Finished calculating Cholesky integrals\n")
+
+  nbasis = h1e.shape[-1]
+  print('Size of the correlation space:')
+  print(f'Number of electrons: {nelec}')
+  print(f'Number of basis functions: {nbasis}')
+  print(f'Number of Cholesky vectors: {chol.shape[0]}\n')
+  chol = chol.reshape((-1, nbasis, nbasis))
+  v0 = 0.5 * np.einsum('nik,njk->ij', chol, chol, optimize='optimal')
+  h1e_mod = h1e - v0
+  chol = chol.reshape((chol.shape[0], -1))
+  write_dqmc(h1e, h1e_mod, chol, sum(nelec), nbasis, enuc, ms=mol.spin, filename='FCIDUMP_chol')
+  overlap = mf.get_ovlp(mol)
+
+  if isinstance(mf, (scf.uhf.UHF, scf.rohf.ROHF)) or right == 'uhf':
+    hf_type = "uhf"
+    uhfCoeffs = np.empty((nbasis, 2*nbasis))
+    if isinstance(mf, scf.uhf.UHF) and False:
+      q, r = np.linalg.qr(mo_coeff[:, norb_frozen:].T.dot(overlap).dot(mf.mo_coeff[0][:, norb_frozen:]))
+      uhfCoeffs[:, :nbasis] = q
+      q, r = np.linalg.qr(mo_coeff[:, norb_frozen:].T.dot(overlap).dot(mf.mo_coeff[1][:, norb_frozen:]))
+      uhfCoeffs[:, nbasis:] = q
+    else:
+      #q, r = np.linalg.qr(mo_coeff[:, norb_frozen:].T.dot(overlap).dot(mf.mo_coeff[:, norb_frozen:]))
+      if (type(norb_frozen)==int): q = np.eye(nbasis)
+      else : q = np.eye(nbasis)
+      uhfCoeffs[:, :nbasis] = q
+      uhfCoeffs[:, nbasis:] = q
+
+    writeMat(uhfCoeffs, "uhf.txt")
+  
+  elif isinstance(mf, scf.rhf.RHF):
+    hf_type = "rhf"
+    #p = [i for i in range(0,len(mo_coeff.T)) if i not in norb_frozen]
+    #q, r = np.linalg.qr(mo_coeff[:, p].T.dot(overlap).dot(mf.mo_coeff[:, p]))    
+    if (type(norb_frozen)==int): q = np.eye(mol.nao-norb_frozen)
+    else : q = np.eye(mol.nao- len(norb_frozen))
+    writeMat(q, "rhf.txt")
+
+  # write input
+  write_afqmc_input(seed = seed, left = hf_type, right = hf_type, dt = dt, nsteps = steps_per_block, nwalk = nwalk_per_proc, stochasticIter = nblocks, orthoSteps = ortho_steps, burnIter = burn_in, choleskyThreshold = cholesky_threshold, weightCap = weight_cap, writeOneRDM = write_one_rdm,orbitalE=orbitalE)
+
+  print(f"Starting AFQMC / MF calculation", flush=True)
+  e_afqmc = None
+  err_afqmc = None
+  e0_orbital = None
+  delta = None
+  if mpi_prefix is None:
+    mpi_prefix = "mpirun "
+    if nproc is not None:
+      mpi_prefix += f" -np {nproc} "
+  os.system("rm -f samples.dat")
+  afqmc_binary = vmc_root + "/bin/DQMC"
+
+  command = f"export OMP_NUM_THREADS=1; {mpi_prefix} {afqmc_binary} afqmc.json"
+  os.system(command)
+
+  if (os.path.isfile('samples.dat')):
+    print("\nBlocking analysis:", flush=True)
+    command = f"mv blocking.tmp blocking.out; cat blocking.out"
+    os.system(command)
+    print(f"Finished AFQMC / MF calculation\n", flush=True)
+
+    # get afqmc energy from output
+    with open(f'blocking.out', 'r') as fh:
+      for line in fh:
+        if 'Mean energy:' in line:
+          ls = line.split()
+          e_afqmc = float(ls[2])
+        if 'Stochastic error estimate:' in line:
+          ls = line.split()
+          err_afqmc = float(ls[3])
+        if 'Initial Orbital Energy:' in line:
+          ls = line.split()
+          e0_orbital = float(ls[3]) 
+        if 'Cholesky error:' in line:
+          ls = line.split()
+          delta = float(ls[2])
+
+    if err_afqmc is not None:
+      sig_dec = int(abs(np.floor(np.log10(err_afqmc))))
+      sig_err = np.around(np.round(err_afqmc * 10**sig_dec) * 10**(-sig_dec), sig_dec)
+      sig_e = np.around(e_afqmc, sig_dec)
+      print(f'AFQMC energy: {sig_e:.{sig_dec}f} +/- {sig_err:.{sig_dec}f}\n')
+    elif e_afqmc is not None:
+      print(f'AFQMC energy: {e_afqmc}\nCould not find a stochastic error estimate, check blocking analysis\n', flush=True)
+
+  else:
+    print("\nAFQMC calculation did not finish, check the afqmc.dat file\n")
+    exit(1)
+
+  os.chdir(owd)
+  return e_afqmc -e0_orbital, err_afqmc
 
 # calculate and write cholesky-like integrals given eri's
 def calculate_write_afqmc_uihf_integrals(ham_ints, norb, nelec, ms=0, chol_cut=1e-6, filename='FCIDUMP_chol', dm=None):
@@ -1210,7 +1368,7 @@ def calculate_write_afqmc_uihf_integrals(ham_ints, norb, nelec, ms=0, chol_cut=1
 
 
 # cholesky generation functions are from pauxy
-def generate_integrals(mol, hcore, X, chol_cut=1e-5, verbose=False):
+def generate_integrals(mol, hcore, X, chol_cut=1e-5, verbose=False,chol_vecs = None):
     # Unpack SCF data.
     # Step 1. Rotate core Hamiltonian to orthogonal basis.
     if verbose:
@@ -1219,26 +1377,29 @@ def generate_integrals(mol, hcore, X, chol_cut=1e-5, verbose=False):
         h1e = np.dot(X.T, np.dot(hcore, X))
     elif (len(X.shape) == 3):
         h1e = np.dot(X[0].T, np.dot(hcore, X[0]))
-
-    #nbasis = h1e.shape[-1]
+    
+    nbasis = h1e.shape[-1]
     # Step 2. Genrate Cholesky decomposed ERIs in non-orthogonal AO basis.
     if verbose:
-        print(" # Performing modified Cholesky decomposition on ERI tensor.")
-    chol_vecs = chunked_cholesky(mol, max_error=chol_cut, verbose=verbose)
+        print (" # Performing modified Cholesky decomposition on ERI tensor.")
+    if(isinstance(chol_vecs,type(None))):
+    	chol_vecsp = chunked_cholesky(mol, max_error=chol_cut, verbose=True)
+    else: 
+    	chol_vecsp = copy.copy(chol_vecs)
     if verbose:
-        print(" # Orthogonalising Cholesky vectors.")
+        print (" # Orthogonalising Cholesky vectors.")
     start = time.time()
     # Step 2.a Orthogonalise Cholesky vectors.
     if (len(X.shape) == 2):
-        ao2mo_chol(chol_vecs, X)
+        ao2mo_chol(chol_vecsp, X)
     elif (len(X.shape) == 3):
-        ao2mo_chol(chol_vecs, X[0])
+        ao2mo_chol(chol_vecsp, X[0])
     if verbose:
-        print(" # Time to orthogonalise: %f" % (time.time() - start))
+        print (" # Time to orthogonalise: %f"%(time.time() - start))
     enuc = mol.energy_nuc()
     # Step 3. (Optionally) freeze core / virtuals.
     nelec = mol.nelec
-    return h1e, chol_vecs, nelec, enuc
+    return h1e, chol_vecsp, nelec, enuc
 
 
 def ao2mo_chol(eri, C):

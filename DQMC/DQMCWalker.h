@@ -45,5 +45,6 @@ class DQMCWalker {
     void oneRDM(Wavefunction& wave, Eigen::MatrixXcd& rdmSample);
     void oneRDM(Wavefunction& wave, std::array<Eigen::MatrixXcd, 2>& rdmSample);
     std::array<std::complex<double>, 2> hamAndOverlap(Wavefunction& wave, Hamiltonian& ham);
+    std::array<std::complex<double>,3> orbitalEnergy(Wavefunction& psi, Hamiltonian& ham,int orbital);
 };
 #endif

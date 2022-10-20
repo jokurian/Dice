@@ -128,3 +128,13 @@ std::array<std::complex<double>, 2> UCCSD::hamAndOverlap(Eigen::MatrixXcd& psi, 
 {
   return std::array<complex<double>, 2>();
 };
+
+std::array<std::complex<double>, 3> UCCSD::orbitalEnergy(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham,int orbital)
+{
+return std::array<std::complex<double>, 3>();
+};
+std::array<std::complex<double>, 3> UCCSD::orbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham,int orbital)
+{   
+ return std::array<std::complex<double>, 3>();
+};
+

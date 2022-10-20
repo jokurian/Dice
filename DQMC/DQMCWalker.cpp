@@ -705,4 +705,11 @@ std::array<std::complex<double>, 2> DQMCWalker::hamAndOverlap(Wavefunction& wave
   return hamOverlap;
 };
 
+std::array<std::complex<double>, 3> DQMCWalker::orbitalEnergy(Wavefunction& psi, Hamiltonian& ham,int orbital)
+{ 
+  std::array<std::complex<double>, 3> orbE;
+  if (rhfQ) orbE = psi.orbitalEnergy(det[0],ham,orbital);
+  else orbE = psi.orbitalEnergy(det,ham,orbital);
+  return orbE;
+};
 

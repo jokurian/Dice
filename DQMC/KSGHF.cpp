@@ -131,3 +131,12 @@ std::array<std::complex<double>, 2> KSGHF::hamAndOverlap(Eigen::MatrixXcd& psi, 
   psiP[1] = psi;
   return hamAndOverlap(psiP, ham);
 };
+
+std::array<std::complex<double>, 3> KSGHF::orbitalEnergy(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham,int orbital)
+{
+return std::array<std::complex<double>, 3>();
+};
+std::array<std::complex<double>, 3> KSGHF::orbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham,int orbital)
+{   
+ return std::array<std::complex<double>, 3> ();
+};

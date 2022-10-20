@@ -786,3 +786,11 @@ std::array<std::complex<double>, 2> GZHFMultislater::hamAndOverlap(Eigen::Matrix
   hamOverlap[1] = overlap;
   return hamOverlap;
 };
+std::array<std::complex<double>, 3> GZHFMultislater::orbitalEnergy(std::array<Eigen::MatrixXcd, 2>& psi, Hamiltonian& ham,int orbital)
+{
+return std::array<std::complex<double>, 3>();
+};
+std::array<std::complex<double>, 3> GZHFMultislater::orbitalEnergy(Eigen::MatrixXcd& psi, Hamiltonian& ham,int orbital)
+{   
+ return std::array<std::complex<double>, 3> ();
+};
